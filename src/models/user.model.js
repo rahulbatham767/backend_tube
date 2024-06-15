@@ -1,13 +1,9 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { ApiError } from "../utils/apiError.js";
 const UserSchema = new Schema(
   {
-    id: {
-      type: String,
-      unique: true,
-      required: true,
-    },
     watchHistory: [{ type: Schema.Types.ObjectId, ref: "Video" }],
     username: {
       type: String,
@@ -34,7 +30,7 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
-    coverimage: {
+    coverImage: {
       type: String,
       required: true,
     },
@@ -50,16 +46,20 @@ const UserSchema = new Schema(
 );
 
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified(this.password)) return next();
+  if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
 UserSchema.methods.isPasswordCorrect = async function (password) {
-  await bcrypt.compare(password, this.password);
+  try {
+    return await bcrypt.compare(password, this.password);
+  } catch (error) {
+    throw new ApiError(401, "Error during password comparison");
+  }
 };
 
-UserSchema.methods.generateAccessToken = async function () {
+UserSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -73,7 +73,7 @@ UserSchema.methods.generateAccessToken = async function () {
     }
   );
 };
-UserSchema.methods.generateRefreshToken = async function () {
+UserSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
