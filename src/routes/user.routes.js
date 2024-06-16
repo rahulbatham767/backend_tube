@@ -3,6 +3,7 @@ import {
   changeCurrentPassword,
   getCurrentUser,
   getUserChannnelInfo,
+  getWatchHistory,
   loginUser,
   logoutUser,
   refreshAccessToken,
@@ -10,7 +11,6 @@ import {
   updateAccountDetails,
   updateCoverImage,
   updateUserAvatar,
-  watchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -45,6 +45,6 @@ router
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
 
 router.route("/channel/:username").get(verifyJWT, getUserChannnelInfo);
-router.route("watch-history").get(verifyJWT, watchHistory);
+router.route("/watch-history").get(verifyJWT, getWatchHistory);
 
 export default router;

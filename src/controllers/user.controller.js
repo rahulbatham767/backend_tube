@@ -156,7 +156,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 }, //this remove the field from the document
     },
     { new: true }
   );
@@ -299,66 +299,69 @@ export const getUserChannnelInfo = asyncHandler(async (req, res) => {
   }
 
   // now we will match the username in document and take all the document
-  const channel = await User.aggregate([
-    { $match: { username: username?.toLowercase() } },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subscribers",
+  try {
+    const channel = await User.aggregate([
+      { $match: { username: username?.toLowerCase() } },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "subscriber",
-        as: "subscribedTo",
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "subscriber",
+          as: "subscribedTo",
+        },
       },
-    },
-    {
-      $addFields: {
-        subscribersCount: { $size: "$subscribers" },
-        channelSubscribedToCount: { $size: "$subscribedTo" },
-        isSubscribed: {
-          $cond: {
-            if: {
-              $in: ["req.user?.id", "$subscribers.subscribe"],
+      {
+        $addFields: {
+          subscribersCount: { $size: "$subscribers" },
+          channelSubscribedToCount: { $size: "$subscribedTo" },
+          isSubscribed: {
+            $cond: {
+              if: { $in: [req.user?.id, "$subscribers.subscriber"] },
               then: true,
               else: false,
             },
           },
         },
       },
-    },
-    {
-      $project: {
-        fullName: 1,
-        username: 1,
-        subscribersCount: 1,
-        channelSubscribedToCount: 1,
-        isSubscribed: 1,
-        avatar: 1,
-        coverImage: 1,
-        email: 1,
+
+      {
+        $project: {
+          fullName: 1,
+          username: 1,
+          subscribersCount: 1,
+          channelSubscribedToCount: 1,
+          isSubscribed: 1,
+          avatar: 1,
+          coverImage: 1,
+          email: 1,
+        },
       },
-    },
-  ]);
-  if (!channel?.length) {
-    throw new ApiError(401, "Channel does not exist");
+    ]);
+    if (!channel?.length) {
+      throw new ApiError(401, "Channel does not exist");
+    }
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, channel[0], "User channel Fetched Suscessfully")
+      );
+  } catch (error) {
+    throw new ApiError(401, error + " Error fetching channel information");
   }
-  return res
-    .status(200)
-    .json(
-      new apiResponse(200, channel[0], "User channel Fetched Suscessfully")
-    );
 });
 
-export const watchHistory = asyncHandler(async (req, res) => {
-  const user = User.aggregate([
+export const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
     // we get string from mongo so we need to convert it to mongo object id
-    { $match: { _id: mongoose.Types.ObjectId(req.user?._id) } },
+    { $match: { _id: new mongoose.Types.ObjectId(req.user?._id) } },
     {
       // finding watch history
       $lookup: {
@@ -401,7 +404,7 @@ export const watchHistory = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new apiResponse(
+      new ApiResponse(
         200,
         user[0].watchHistory,
         "watch history fetched successfully  "
