@@ -55,7 +55,7 @@ UserSchema.methods.isPasswordCorrect = async function (password) {
   try {
     return await bcrypt.compare(password, this.password);
   } catch (error) {
-    throw new ApiError(401, "Error during password comparison");
+    throw new ApiError(401, "Error during password comparison " + error);
   }
 };
 
