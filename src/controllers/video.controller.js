@@ -2,7 +2,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiResponse } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
 
@@ -10,7 +10,42 @@ const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
 
-  const video = await Video.findOne({ owner: userId });
+  // Check if page and limit are valid numbers
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
+  if (
+    isNaN(pageNumber) ||
+    isNaN(limitNumber) ||
+    pageNumber < 1 ||
+    limitNumber < 1
+  ) {
+    return new ApiError(400, "Invalid pagination parameters");
+  }
+
+  // Create filter object
+  let filter = { owner: userId };
+  if (query) {
+    // Using $or to search in both title and description fields
+    filter.$or = [
+      { title: { $regex: query, $options: "i" } }, // Case-insensitive search
+      { description: { $regex: query, $options: "i" } },
+    ];
+  }
+  // Create sort object
+  const sort = {};
+
+  if (sortBy) {
+    sort[sortBy] = sortType === "desc" ? -1 : 1;
+  }
+
+  // No of Videos for skipping
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const video = await Video.find(filter)
+    .skip(skip)
+    .sort(sort)
+    .limit(limitNumber);
   if (!video) {
     throw new ApiError(401, "No Video found for user");
   }
@@ -62,6 +97,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
       videoFile: videoUrl?.url || "",
       thumbnail: thumnailUrl?.url || "",
       duration: videoUrl?.duration,
+      owner:req.user._id
     });
 
     res
@@ -84,6 +120,8 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(401, "No Video found");
   }
+  video.views += 1;
+  await video.save();
   res
     .status(200)
     .json(new ApiResponse(200, video, "Video fetched Successfully"));

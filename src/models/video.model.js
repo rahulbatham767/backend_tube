@@ -14,6 +14,7 @@ const videSchema = new Schema(
     title: {
       type: String,
       required: true,
+      index: true,
     },
 
     description: {
@@ -39,5 +40,9 @@ const videSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Define text index on title and description fields
+videSchema.index({ title: "text", description: "text" });
+
 videSchema.plugin(mongooseAggregatePaginate);
 export const Video = mongoose.model("Video", videSchema);

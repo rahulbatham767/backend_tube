@@ -18,6 +18,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
   // Calculate the number of comments to skip for pagination
 
   const skip = (page - 1) * limit;
+
   const comments = await Comment.find({ video: videoId })
     .skip(skip)
     .limit(parseInt(limit))
@@ -48,6 +49,7 @@ const addComment = asyncHandler(async (req, res) => {
   const comment = await Comment.create({
     content,
     video: videoId,
+    owner: req.user._id,
   });
   console.log(comment);
 
