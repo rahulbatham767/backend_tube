@@ -11,7 +11,6 @@ import mongoose from "mongoose";
 
 const storage = new GridFsStorage({
   url: process.env.MONGO_URI,
-  options: { useNewUrlParser: true, useUnifiedTopology: true },
   file: (req, file) => {
     return {
       bucketName: "uploads", // Name of the MongoDB collection
