@@ -270,6 +270,8 @@ export const updateAccountDetails = asyncHandler(async (req, res) => {
 
 export const updateUserAvatar = asyncHandler(async (req, res) => {
   const avatarLocalPath = req.file?.path;
+  console.log(avatarLocalPath);
+
   if (!avatarLocalPath) {
     throw new ApiError(401, "User Avatar is not available");
   }
