@@ -104,15 +104,15 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 export const loginUser = asyncHandler(async (req, res) => {
   // getting data
-  const { email, username, password } = req.body;
-  console.log(req.body);
+  const { email, password } = req.body;
+  console.log(email, password);
 
-  if (!(username && email)) {
+  if (!email) {
     throw new ApiError(400, "Username or email is required");
   }
 
   //find the user
-  const user = await User.findOne({ $or: [{ email }, { username }] });
+  const user = await User.findOne({ $or: [{ email }, { username: email }] });
   if (!user) {
     throw new ApiError(401, "User Does not exist");
   }
@@ -155,25 +155,31 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 
 export const logoutUser = asyncHandler(async (req, res) => {
-  console.log("logout user");
-  console.log(req.user);
+  try {
+    console.log(req.user);
 
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      $unset: { refreshToken: 1 }, //this remove the field from the document
-    },
-    { new: true }
-  );
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("RefreshToken", options)
-    .json(new ApiResponse(200, {}, "User Logged Out Successfully"));
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: { refreshToken: 1 }, //this remove the field from the document
+      },
+      { new: true }
+    );
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+    };
+
+    return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("RefreshToken", options)
+      .json(new ApiResponse(200, {}, "User Logged Out Successfully"));
+  } catch (error) {
+    throw new ApiError("error while logout ", error);
+  }
 });
 
 export const refreshAccessToken = asyncHandler(async (req, res) => {
