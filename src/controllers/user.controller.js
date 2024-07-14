@@ -47,6 +47,8 @@ export const registerUser = asyncHandler(async (req, res) => {
     }
 
     //  fetching avatar
+    console.log(req.files);
+
     const avatarLocalPath = req.files?.avatar[0]?.path;
     const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
@@ -167,7 +169,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     );
     const options = {
       httpOnly: true,
-   secure:true,
+      secure: true,
     };
 
     return res

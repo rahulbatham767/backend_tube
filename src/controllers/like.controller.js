@@ -3,6 +3,7 @@ import { Like } from "../models/like.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { Tweet } from "../models/tweet.model.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -13,7 +14,6 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
   const existingLike = await Like.findOne({
     likedBy: userId,
     video: videoId,
-    
   });
 
   if (existingLike) {
@@ -63,12 +63,26 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
   if (existingTweet) {
     // User has already liked the video, so we should remove the like
     await Like.findByIdAndDelete(existingTweet._id);
-    res.status(200).json({ message: "Like removed successfully" });
+    await Tweet.findByIdAndUpdate(tweetId, { $inc: { likesCount: -1 } });
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, existingTweet, "Tweet removed successfully"));
   } else {
     // User has not liked the video, so we should add a new like
-    const newLike = new Like({ likedBy: userId, tweet: tweetId });
+    const newLike = new Like({
+      likedBy: userId,
+      tweet: tweetId,
+    });
+    await Like.findByIdAndDelete(existingTweet._id, {
+      $inc: { totalLike: 1 },
+    });
     await newLike.save();
-    res.status(200).json({ message: "Video liked successfully" });
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, existingTweet, "Liked videos Fetched successfully")
+      );
   }
 });
 

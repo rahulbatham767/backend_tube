@@ -37,6 +37,9 @@ const videSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+    isLiked: { type: Boolean },
+    totalLike: { type: Number },
+    totalDisLikes: { type: Number },
   },
   { timestamps: true }
 );
